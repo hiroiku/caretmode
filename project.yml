@@ -21,7 +21,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.hiroiku.CaretMode
         INFOPLIST_FILE: CaretMode/Info.plist
         CODE_SIGN_ENTITLEMENTS: CaretMode/CaretMode.entitlements
-        CODE_SIGN_STYLE: Automatic
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: CaretMode Dev
         ENABLE_HARDENED_RUNTIME: true
         PRODUCT_NAME: CaretMode
         MARKETING_VERSION: "0.1.0"

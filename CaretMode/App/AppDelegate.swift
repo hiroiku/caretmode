@@ -6,11 +6,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     let inputSourceMonitor = InputSourceMonitor()
     let accessibilityManager = AccessibilityManager()
+    let inputMonitoringManager = InputMonitoringManager()
     let caretPositionTracker = CaretPositionTracker()
     var indicatorController: IndicatorWindowController?
     private var settingsWindow: NSWindow?
+    private var statusItem: NSStatusItem!
+    private var toggleMenuItem: NSMenuItem!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Set up menu bar status item
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        statusItem.button?.image = NSImage(named: "MenuBarIcon")
+
+        let menu = NSMenu()
+        toggleMenuItem = menu.addItem(
+            withTitle: "インジケーターを表示",
+            action: #selector(toggleEnabled),
+            keyEquivalent: ""
+        )
+        menu.addItem(.separator())
+        menu.addItem(
+            withTitle: "設定…",
+            action: #selector(openSettingsFromMenu),
+            keyEquivalent: ","
+        )
+        menu.addItem(.separator())
+        menu.addItem(
+            withTitle: "CaretMode を終了",
+            action: #selector(NSApplication.shared.terminate(_:)),
+            keyEquivalent: "q"
+        )
+        statusItem.menu = menu
+
         let controller = IndicatorWindowController(
             source: inputSourceMonitor.currentSource,
             settings: settings
@@ -29,9 +56,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             caretPositionTracker.startTracking()
         }
 
-        settings.onChangeCallback = { [weak self] in self?.updateIndicator() }
+        settings.onChangeCallback = { [weak self] in
+            self?.updateIndicator()
+            self?.updateMenuBarIcon()
+        }
 
         updateIndicator()
+        updateMenuBarIcon()
 
         // First launch: open settings panel to guide permission setup
         let defaults = UserDefaults.standard
@@ -51,6 +82,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillTerminate(_ notification: Notification) {
         caretPositionTracker.stopTracking()
     }
+
+    // MARK: - Menu Bar Icon
+
+    private func updateMenuBarIcon() {
+        statusItem.isVisible = settings.showMenuBarIcon || settingsWindow != nil
+        toggleMenuItem.state = settings.isEnabled ? .on : .off
+    }
+
+    @objc private func toggleEnabled() {
+        settings.isEnabled.toggle()
+    }
+
+    @objc private func openSettingsFromMenu() {
+        openSettings()
+    }
+
+    // MARK: - Indicator
 
     private func updateIndicator() {
         guard let controller = indicatorController else { return }
@@ -79,6 +127,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    // MARK: - Settings Window
+
     func openSettings() {
         if let window = settingsWindow {
             window.makeKeyAndOrderFront(nil)
@@ -86,9 +136,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        accessibilityManager.startPolling()
+        inputMonitoringManager.startPolling()
+
         let settingsView = SettingsView(
             settings: settings,
-            accessibilityManager: accessibilityManager
+            accessibilityManager: accessibilityManager,
+            inputMonitoringManager: inputMonitoringManager
         )
 
         let window = NSWindow(
@@ -106,6 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         NSApp.activate(ignoringOtherApps: true)
         self.settingsWindow = window
+        updateMenuBarIcon()
     }
 }
 
@@ -113,6 +168,9 @@ extension AppDelegate: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         if (notification.object as? NSWindow) === settingsWindow {
             settingsWindow = nil
+            accessibilityManager.stopPolling()
+            inputMonitoringManager.stopPolling()
+            updateMenuBarIcon()
         }
     }
 }

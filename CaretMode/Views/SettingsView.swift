@@ -1,14 +1,14 @@
-import Carbon
 import ServiceManagement
 import SwiftUI
 
 struct SettingsView: View {
     @Bindable var settings: AppSettings
     let accessibilityManager: AccessibilityManager
+    let inputMonitoringManager: InputMonitoringManager
 
     var body: some View {
         TabView {
-            GeneralTab(settings: settings, accessibilityManager: accessibilityManager)
+            GeneralTab(settings: settings, accessibilityManager: accessibilityManager, inputMonitoringManager: inputMonitoringManager)
                 .tabItem { Label("一般", systemImage: "gear") }
 
             AppearanceTab(settings: settings)
@@ -29,6 +29,7 @@ struct SettingsView: View {
 private struct GeneralTab: View {
     @Bindable var settings: AppSettings
     let accessibilityManager: AccessibilityManager
+    let inputMonitoringManager: InputMonitoringManager
 
     var body: some View {
         Form {
@@ -58,11 +59,10 @@ private struct GeneralTab: View {
 
             LabeledContent("入力監視権限") {
                 HStack {
-                    let granted = IOHIDRequestAccess(kIOHIDRequestTypeListenEvent)
-                    Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
-                        .foregroundStyle(granted ? .green : .red)
-                    Text(granted ? "許可済み" : "未許可")
-                    if !granted {
+                    Image(systemName: inputMonitoringManager.isGranted ? "checkmark.circle.fill" : "xmark.circle.fill")
+                        .foregroundStyle(inputMonitoringManager.isGranted ? .green : .red)
+                    Text(inputMonitoringManager.isGranted ? "許可済み" : "未許可")
+                    if !inputMonitoringManager.isGranted {
                         Button("設定を開く") {
                             if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent") {
                                 NSWorkspace.shared.open(url)

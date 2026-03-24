@@ -73,6 +73,13 @@ enum AXHelpers {
 
         // Try length=0 first (insertion point)
         if let rect = boundsForRange(element: element, location: range.location, length: 0) {
+            // At line start, some apps return the previous line's end position for length=0.
+            // Cross-validate with length=1 to detect and correct this.
+            if isAtLineStart(element: element, location: range.location),
+               let nextRect = boundsForRange(element: element, location: range.location, length: 1),
+               !sameLine(rect, nextRect) {
+                return CGRect(x: nextRect.origin.x, y: nextRect.origin.y, width: 0, height: nextRect.height)
+            }
             return rect
         }
 
@@ -116,6 +123,21 @@ enum AXHelpers {
         guard rect.height > 0 else { return nil }
 
         return rect
+    }
+
+    private static func isAtLineStart(element: AXUIElement, location: Int) -> Bool {
+        if location == 0 { return true }
+        var prevRange = CFRange(location: location - 1, length: 1)
+        guard let prevRangeValue = AXValueCreate(.cfRange, &prevRange) else { return false }
+        guard let charValue = getParameterizedAttribute(
+            element, kAXStringForRangeParameterizedAttribute, param: prevRangeValue
+        ) as? String else { return false }
+        return charValue == "\n" || charValue == "\r" || charValue == "\r\n"
+    }
+
+    private static func sameLine(_ a: CGRect, _ b: CGRect) -> Bool {
+        let threshold = max(a.height, b.height) * 0.5
+        return abs(a.midY - b.midY) < threshold
     }
 
     static func getElementRect(_ element: AXUIElement) -> CGRect? {
