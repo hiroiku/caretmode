@@ -43,14 +43,24 @@ enum AXHelpers {
             kAXTextAreaRole,
             kAXComboBoxRole,
             "AXSearchField",
-            "AXWebArea",
         ]
         if textRoles.contains(role) {
             return true
         }
-        // Fallback: if the element has a selected text range, it's likely a text input
+        // AXWebArea is only considered text input if it's editable (e.g. contentEditable)
+        if role == "AXWebArea" {
+            return isEditable(element)
+        }
+        // Fallback: selected text range + editable = likely a text input
         if getAttribute(element, kAXSelectedTextRangeAttribute) != nil {
-            return true
+            return isEditable(element)
+        }
+        return false
+    }
+
+    private static func isEditable(_ element: AXUIElement) -> Bool {
+        if let editable = getAttribute(element, "AXEditable") as? Bool {
+            return editable
         }
         return false
     }

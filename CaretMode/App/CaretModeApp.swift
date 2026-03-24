@@ -7,7 +7,7 @@ struct CaretModeApp: App {
     var body: some Scene {
         MenuBarExtra(
             "CaretMode",
-            systemImage: "character.cursor.ibeam",
+            systemImage: "a.square",
             isInserted: Binding(
                 get: { appDelegate.settings.showMenuBarIcon },
                 set: { appDelegate.settings.showMenuBarIcon = $0 }
