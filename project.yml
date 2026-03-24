@@ -1,0 +1,33 @@
+name: CaretMode
+options:
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+
+targets:
+  CaretMode:
+    type: application
+    platform: macOS
+    sources:
+      - CaretMode
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hiroiku.CaretMode
+        INFOPLIST_FILE: CaretMode/Info.plist
+        CODE_SIGN_ENTITLEMENTS: CaretMode/CaretMode.entitlements
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: true
+        PRODUCT_NAME: CaretMode
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: 1
+        GENERATE_INFOPLIST_FILE: false
+        SWIFT_STRICT_CONCURRENCY: complete
+    dependencies:
+      - sdk: Carbon.framework
+      - sdk: ApplicationServices.framework
