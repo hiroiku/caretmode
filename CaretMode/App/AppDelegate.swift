@@ -6,7 +6,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     let inputSourceMonitor = InputSourceMonitor()
     let accessibilityManager = AccessibilityManager()
-    let inputMonitoringManager = InputMonitoringManager()
     let caretPositionTracker = CaretPositionTracker()
     var indicatorController: IndicatorWindowController?
     private var settingsWindow: NSWindow?
@@ -136,13 +135,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        accessibilityManager.startPolling()
-        inputMonitoringManager.startPolling()
-
         let settingsView = SettingsView(
             settings: settings,
-            accessibilityManager: accessibilityManager,
-            inputMonitoringManager: inputMonitoringManager
+            accessibilityManager: accessibilityManager
         )
 
         let window = NSWindow(
@@ -168,8 +163,6 @@ extension AppDelegate: NSWindowDelegate {
     func windowWillClose(_ notification: Notification) {
         if (notification.object as? NSWindow) === settingsWindow {
             settingsWindow = nil
-            accessibilityManager.stopPolling()
-            inputMonitoringManager.stopPolling()
             updateMenuBarIcon()
         }
     }
