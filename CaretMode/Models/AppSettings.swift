@@ -10,8 +10,12 @@ final class AppSettings {
         didSet { UserDefaults.standard.set(isEnabled, forKey: "isEnabled"); onChangeCallback?() }
     }
 
-    var indicatorSize: IndicatorSize {
-        didSet { UserDefaults.standard.set(indicatorSize.rawValue, forKey: "indicatorSize"); onChangeCallback?() }
+    var fontSize: CGFloat {
+        didSet { UserDefaults.standard.set(Double(fontSize), forKey: "fontSize"); onChangeCallback?() }
+    }
+
+    var fontName: String {
+        didSet { UserDefaults.standard.set(fontName, forKey: "fontName"); onChangeCallback?() }
     }
 
     var opacity: Double {
@@ -74,34 +78,6 @@ final class AppSettings {
         didSet { UserDefaults.standard.set(launchAtLogin, forKey: "launchAtLogin") }
     }
 
-    enum IndicatorSize: String, CaseIterable {
-        case small, medium, large
-
-        var fontSize: CGFloat {
-            switch self {
-            case .small: return 10
-            case .medium: return 12
-            case .large: return 16
-            }
-        }
-
-        var frameSize: CGFloat {
-            switch self {
-            case .small: return 18
-            case .medium: return 22
-            case .large: return 28
-            }
-        }
-
-        var displayName: String {
-            switch self {
-            case .small: return "小"
-            case .medium: return "中"
-            case .large: return "大"
-            }
-        }
-    }
-
     init() {
         let defaults = UserDefaults.standard
 
@@ -139,9 +115,13 @@ final class AppSettings {
         if defaults.object(forKey: "paddingVertical") == nil {
             defaults.set(4.0, forKey: "paddingVertical")
         }
+        if defaults.object(forKey: "fontSize") == nil {
+            defaults.set(12.0, forKey: "fontSize")
+        }
 
         self.isEnabled = defaults.bool(forKey: "isEnabled")
-        self.indicatorSize = IndicatorSize(rawValue: defaults.string(forKey: "indicatorSize") ?? "") ?? .medium
+        self.fontSize = CGFloat(defaults.double(forKey: "fontSize"))
+        self.fontName = defaults.string(forKey: "fontName") ?? ""
         self.opacity = defaults.double(forKey: "opacity")
         self.offsetX = CGFloat(defaults.double(forKey: "offsetX"))
         self.offsetY = CGFloat(defaults.double(forKey: "offsetY"))

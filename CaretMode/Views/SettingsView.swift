@@ -96,14 +96,24 @@ private struct AppearanceTab: View {
 
     var body: some View {
         Form {
-            Section("背景") {
-                Picker("サイズ", selection: $settings.indicatorSize) {
-                    ForEach(AppSettings.IndicatorSize.allCases, id: \.self) { size in
-                        Text(size.displayName).tag(size)
+            Section("フォント") {
+                LabeledContent("サイズ") {
+                    Stepper(value: $settings.fontSize, in: 6...48, step: 1) {
+                        Text("\(Int(settings.fontSize)) pt")
+                            .monospacedDigit()
                     }
                 }
-                .pickerStyle(.segmented)
 
+                Picker("フォント", selection: $settings.fontName) {
+                    Text("システムフォント").tag("")
+                    Divider()
+                    ForEach(NSFontManager.shared.availableFontFamilies, id: \.self) { family in
+                        Text(family).tag(family)
+                    }
+                }
+            }
+
+            Section("背景") {
                 LabeledContent("不透明度") {
                     HStack {
                         Slider(value: $settings.opacity, in: 0.2...1.0, step: 0.05)
