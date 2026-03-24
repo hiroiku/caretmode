@@ -114,14 +114,14 @@ private struct AppearanceTab: View {
                 }
 
                 LabeledContent("オフセット X") {
-                    Stepper(value: $settings.offsetX, in: 0...20, step: 1) {
+                    Stepper(value: $settings.offsetX, in: -20...20, step: 1) {
                         Text("\(Int(settings.offsetX)) pt")
                             .monospacedDigit()
                     }
                 }
 
                 LabeledContent("オフセット Y") {
-                    Stepper(value: $settings.offsetY, in: 0...20, step: 1) {
+                    Stepper(value: $settings.offsetY, in: -20...20, step: 1) {
                         Text("\(Int(settings.offsetY)) pt")
                             .monospacedDigit()
                     }
