@@ -8,11 +8,18 @@ struct IndicatorView: View {
         let config = settings.config(for: source)
         let size = settings.indicatorSize
         let radius = settings.cornerRadius
+        let textLineHeight = ceil(size.fontSize * 1.3)
+        let contentHeight = textLineHeight + settings.paddingVertical * 2
+        let minSide = max(size.frameSize, contentHeight)
 
         Text(config.label)
             .font(.system(size: size.fontSize, weight: .bold, design: .rounded))
             .foregroundStyle(.primary)
-            .frame(width: size.frameSize, height: size.frameSize)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
+            .padding(.horizontal, settings.paddingHorizontal)
+            .padding(.vertical, settings.paddingVertical)
+            .frame(minWidth: minSide, minHeight: size.frameSize)
             .background(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .fill(config.color.color)

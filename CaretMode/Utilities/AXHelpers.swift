@@ -97,7 +97,7 @@ enum AXHelpers {
         var rect = CGRect.zero
         guard AXValueGetValue(boundsValue as! AXValue, .cgRect, &rect),
               rect.height > 0 else { return nil }
-        return rect
+        return CGRect(x: rect.origin.x, y: rect.origin.y, width: 0, height: rect.height)
     }
 
     private static func getCaretRectViaTextRange(from element: AXUIElement) -> CGRect? {

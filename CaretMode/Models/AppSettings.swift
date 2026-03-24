@@ -50,6 +50,14 @@ final class AppSettings {
         didSet { UserDefaults.standard.set(Double(cornerRadius), forKey: "cornerRadius"); onChangeCallback?() }
     }
 
+    var paddingHorizontal: CGFloat {
+        didSet { UserDefaults.standard.set(Double(paddingHorizontal), forKey: "paddingHorizontal"); onChangeCallback?() }
+    }
+
+    var paddingVertical: CGFloat {
+        didSet { UserDefaults.standard.set(Double(paddingVertical), forKey: "paddingVertical"); onChangeCallback?() }
+    }
+
     var showMenuBarIcon: Bool {
         didSet { UserDefaults.standard.set(showMenuBarIcon, forKey: "showMenuBarIcon"); onChangeCallback?() }
     }
@@ -125,6 +133,12 @@ final class AppSettings {
         if defaults.object(forKey: "cornerRadius") == nil {
             defaults.set(6.0, forKey: "cornerRadius")
         }
+        if defaults.object(forKey: "paddingHorizontal") == nil {
+            defaults.set(4.0, forKey: "paddingHorizontal")
+        }
+        if defaults.object(forKey: "paddingVertical") == nil {
+            defaults.set(4.0, forKey: "paddingVertical")
+        }
 
         self.isEnabled = defaults.bool(forKey: "isEnabled")
         self.indicatorSize = IndicatorSize(rawValue: defaults.string(forKey: "indicatorSize") ?? "") ?? .medium
@@ -141,6 +155,8 @@ final class AppSettings {
         self.borderWidth = CGFloat(defaults.double(forKey: "borderWidth"))
         self.borderOpacity = defaults.double(forKey: "borderOpacity")
         self.cornerRadius = CGFloat(defaults.double(forKey: "cornerRadius"))
+        self.paddingHorizontal = CGFloat(defaults.double(forKey: "paddingHorizontal"))
+        self.paddingVertical = CGFloat(defaults.double(forKey: "paddingVertical"))
         self.modeConfigs = Self.loadModeConfigs()
         self.excludedApps = Self.loadExcludedApps()
         self.launchAtLogin = defaults.bool(forKey: "launchAtLogin")

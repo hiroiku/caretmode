@@ -12,14 +12,14 @@ final class IndicatorWindowController {
         self.currentSource = source
         self.settings = settings
 
-        let size = settings.indicatorSize.frameSize
         let indicatorView = IndicatorView(source: source, settings: settings)
         let hosting = NSHostingView(rootView: indicatorView)
-        hosting.frame = NSRect(x: 0, y: 0, width: size, height: size)
+        let fittingSize = hosting.fittingSize
+        hosting.frame = NSRect(origin: .zero, size: fittingSize)
         self.hostingView = hosting
 
         let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: size, height: size),
+            contentRect: NSRect(origin: .zero, size: fittingSize),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
@@ -47,9 +47,6 @@ final class IndicatorWindowController {
 
     func updateSettings(_ settings: AppSettings) {
         self.settings = settings
-        let size = settings.indicatorSize.frameSize
-        panel.setContentSize(NSSize(width: size, height: size))
-        hostingView.frame = NSRect(x: 0, y: 0, width: size, height: size)
         refreshView()
     }
 
@@ -98,13 +95,20 @@ final class IndicatorWindowController {
 
     private func refreshView() {
         hostingView.rootView = IndicatorView(source: currentSource, settings: settings)
+        resizePanel()
+    }
+
+    private func resizePanel() {
+        let size = hostingView.fittingSize
+        panel.setContentSize(size)
+        hostingView.frame = NSRect(origin: .zero, size: size)
     }
 
     private func positionAtDefaultLocation() {
         guard let screen = NSScreen.main else { return }
         let screenFrame = screen.visibleFrame
-        let size = settings.indicatorSize.frameSize
-        let x = screenFrame.maxX - size - 16
+        let panelSize = panel.frame.size
+        let x = screenFrame.maxX - panelSize.width - 16
         let y = screenFrame.minY + 16
         panel.setFrameOrigin(NSPoint(x: x, y: y))
     }

@@ -133,6 +133,20 @@ private struct AppearanceTab: View {
                             .monospacedDigit()
                     }
                 }
+
+                LabeledContent("水平パディング") {
+                    Stepper(value: $settings.paddingHorizontal, in: 0...20, step: 1) {
+                        Text("\(Int(settings.paddingHorizontal)) pt")
+                            .monospacedDigit()
+                    }
+                }
+
+                LabeledContent("垂直パディング") {
+                    Stepper(value: $settings.paddingVertical, in: 0...20, step: 1) {
+                        Text("\(Int(settings.paddingVertical)) pt")
+                            .monospacedDigit()
+                    }
+                }
             }
 
             Section("ボーダー") {
@@ -210,7 +224,10 @@ private struct InputSourceRow: View {
             // Preview badge
             Text(config.label)
                 .font(.system(size: 11, weight: .bold, design: .rounded))
-                .frame(width: 20, height: 20)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(3)
+                .frame(minWidth: 20, minHeight: 20, maxHeight: 20)
                 .background(
                     RoundedRectangle(cornerRadius: settings.cornerRadius * 0.8, style: .continuous)
                         .fill(config.color.color)
@@ -231,14 +248,14 @@ private struct InputSourceRow: View {
             TextField("", text: Binding(
                 get: { config.label },
                 set: { newLabel in
-                    let trimmed = String(newLabel.prefix(2))
+                    let trimmed = String(newLabel.prefix(255))
                     guard !trimmed.isEmpty else { return }
                     var updated = config
                     updated.label = trimmed
                     settings.modeConfigs[source.configKey] = updated
                 }
             ))
-            .frame(width: 36)
+            .frame(width: 120)
             .textFieldStyle(.roundedBorder)
 
             // Color picker
