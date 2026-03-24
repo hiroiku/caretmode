@@ -7,10 +7,6 @@ struct IndicatorView: View {
     var body: some View {
         let config = settings.config(for: source)
         let radius = settings.cornerRadius
-        let textLineHeight = ceil(settings.fontSize * 1.3)
-        let contentHeight = textLineHeight + settings.paddingVertical * 2
-        let contentWidth = textLineHeight + settings.paddingHorizontal * 2
-        let minSide = max(contentWidth, contentHeight)
         let font: Font = settings.fontName.isEmpty
             ? .system(size: settings.fontSize, weight: .bold, design: .rounded)
             : .custom(settings.fontName, size: settings.fontSize).bold()
@@ -22,7 +18,6 @@ struct IndicatorView: View {
             .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, settings.paddingHorizontal)
             .padding(.vertical, settings.paddingVertical)
-            .frame(minWidth: minSide, minHeight: minSide)
             .background(
                 RoundedRectangle(cornerRadius: radius, style: .continuous)
                     .fill(config.color.color)
