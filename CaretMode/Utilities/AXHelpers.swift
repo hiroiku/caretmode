@@ -65,7 +65,42 @@ enum AXHelpers {
         return false
     }
 
+    static func ensureAccessibilityEnabled(for app: AXUIElement) {
+        AXUIElementSetAttributeValue(app, "AXEnhancedUserInterface" as CFString, true as CFTypeRef)
+        AXUIElementSetAttributeValue(app, "AXManualAccessibility" as CFString, true as CFTypeRef)
+    }
+
     static func getCaretRect(from element: AXUIElement) -> CGRect? {
+        // Text markers are more reliable for Chrome/Electron (CFRange returns location 0)
+        if let rect = getCaretRectViaTextMarker(from: element) {
+            return rect
+        }
+        // CFRange works correctly for native apps and Safari
+        if let rect = getCaretRectViaTextRange(from: element) {
+            return rect
+        }
+        // Last resort: use element position with estimated caret height
+        if let posValue = getAttribute(element, kAXPositionAttribute) {
+            var position = CGPoint.zero
+            if AXValueGetValue(posValue as! AXValue, .cgPoint, &position) {
+                return CGRect(x: position.x, y: position.y, width: 0, height: 16)
+            }
+        }
+        return nil
+    }
+
+    private static func getCaretRectViaTextMarker(from element: AXUIElement) -> CGRect? {
+        guard let markerRange = getAttribute(element, "AXSelectedTextMarkerRange") else { return nil }
+        guard let boundsValue = getParameterizedAttribute(
+            element, "AXBoundsForTextMarkerRange", param: markerRange
+        ) else { return nil }
+        var rect = CGRect.zero
+        guard AXValueGetValue(boundsValue as! AXValue, .cgRect, &rect),
+              rect.height > 0 else { return nil }
+        return rect
+    }
+
+    private static func getCaretRectViaTextRange(from element: AXUIElement) -> CGRect? {
         guard let rangeValue = getAttribute(element, kAXSelectedTextRangeAttribute) else { return nil }
 
         var range = CFRange()
@@ -93,14 +128,6 @@ enum AXHelpers {
         if range.location > 0, let rect = boundsForRange(element: element, location: range.location - 1, length: 1) {
             // Use the right edge as the caret position
             return CGRect(x: rect.maxX, y: rect.origin.y, width: 0, height: rect.height)
-        }
-
-        // Last resort: use element position with estimated caret height
-        if let posValue = getAttribute(element, kAXPositionAttribute) {
-            var position = CGPoint.zero
-            if AXValueGetValue(posValue as! AXValue, .cgPoint, &position) {
-                return CGRect(x: position.x, y: position.y, width: 0, height: 16)
-            }
         }
 
         return nil

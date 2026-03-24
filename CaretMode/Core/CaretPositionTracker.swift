@@ -13,6 +13,8 @@ final class CaretPositionTracker {
     @ObservationIgnored private var observedPid: pid_t = 0
     @ObservationIgnored private var observedElement: AXUIElement?
     @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
+    @ObservationIgnored private var globalEventMonitors: [Any] = []
+    @ObservationIgnored private var needsPositionUpdate = false
     @ObservationIgnored private var isRunning = false
     @ObservationIgnored var onChange: (() -> Void)?
 
@@ -23,6 +25,7 @@ final class CaretPositionTracker {
         updateFocusedApp()
         updateCaretPosition()
         setupObserverForFrontmostApp()
+        setupEventMonitors()
 
         let nc = NSWorkspace.shared.notificationCenter
         workspaceObservers.append(
@@ -50,6 +53,11 @@ final class CaretPositionTracker {
             NSWorkspace.shared.notificationCenter.removeObserver(obs)
         }
         workspaceObservers.removeAll()
+        for monitor in globalEventMonitors {
+            NSEvent.removeMonitor(monitor)
+        }
+        globalEventMonitors.removeAll()
+        needsPositionUpdate = false
     }
 
     // MARK: - Event Handlers
@@ -119,6 +127,33 @@ final class CaretPositionTracker {
         }
     }
 
+    // MARK: - Global Event Monitoring
+
+    private func setupEventMonitors() {
+        let handler: (NSEvent) -> Void = { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.schedulePositionUpdate()
+            }
+        }
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown, handler: handler) {
+            globalEventMonitors.append(monitor)
+        }
+        if let monitor = NSEvent.addGlobalMonitorForEvents(matching: .leftMouseDown, handler: handler) {
+            globalEventMonitors.append(monitor)
+        }
+    }
+
+    private func schedulePositionUpdate() {
+        guard isTextFieldFocused, !needsPositionUpdate else { return }
+        needsPositionUpdate = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.needsPositionUpdate else { return }
+            self.needsPositionUpdate = false
+            self.updateCaretPosition()
+            self.onChange?()
+        }
+    }
+
     // MARK: - AXObserver Management
 
     private func setupObserverForFrontmostApp() {
@@ -140,8 +175,11 @@ final class CaretPositionTracker {
 
         self.observer = obs
 
-        // Observe app-level events: focus changes, window changes
+        // Enable accessibility tree for Chrome/Electron apps
         let appElement = AXUIElementCreateApplication(pid)
+        AXHelpers.ensureAccessibilityEnabled(for: appElement)
+
+        // Observe app-level events: focus changes, window changes
         let appNotifications: [CFString] = [
             kAXFocusedUIElementChangedNotification as CFString,
             kAXFocusedWindowChangedNotification as CFString,
