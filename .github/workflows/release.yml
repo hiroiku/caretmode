@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - 'v*'
 
 jobs:
   build-and-release:
@@ -29,10 +29,10 @@ jobs:
             build
 
       - name: Create zip
-        run: cd dist && zip -r CaretMode.zip CaretMode.app
+        run: cd dist && zip -r "CaretMode-${GITHUB_REF_NAME}.zip" CaretMode.app
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/CaretMode.zip
+          files: dist/CaretMode-${{ github.ref_name }}.zip
           generate_release_notes: true
