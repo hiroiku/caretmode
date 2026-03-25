@@ -12,6 +12,7 @@ final class CaretPositionTracker {
     @ObservationIgnored private var observer: AXObserver?
     @ObservationIgnored private var observedPid: pid_t = 0
     @ObservationIgnored private var observedElement: AXUIElement?
+    @ObservationIgnored private var observedWindow: AXUIElement?
     @ObservationIgnored private var workspaceObservers: [NSObjectProtocol] = []
     @ObservationIgnored private var globalEventMonitors: [Any] = []
     @ObservationIgnored private var needsPositionUpdate = false
@@ -213,6 +214,7 @@ final class CaretPositionTracker {
         for n in notifications {
             AXObserverAddNotification(observer, element, n, refcon)
         }
+        observeContainingWindow(observer: observer, element: element)
     }
 
     private func removeNotifications(observer: AXObserver, element: AXUIElement) {
@@ -224,10 +226,40 @@ final class CaretPositionTracker {
         for n in notifications {
             AXObserverRemoveNotification(observer, element, n)
         }
+        removeWindowNotifications(observer: observer)
+    }
+
+    private func observeContainingWindow(observer: AXObserver, element: AXUIElement) {
+        let refcon = Unmanaged.passUnretained(self).toOpaque()
+        var current: AXUIElement? = element
+        while let el = current {
+            if let role = AXHelpers.getStringAttribute(el, kAXRoleAttribute),
+               role == kAXWindowRole || role == "AXSheet" || role == "AXDialog" {
+                removeWindowNotifications(observer: observer)
+                observedWindow = el
+                AXObserverAddNotification(observer, el, kAXMovedNotification as CFString, refcon)
+                AXObserverAddNotification(observer, el, kAXResizedNotification as CFString, refcon)
+                return
+            }
+            var parent: AnyObject?
+            let result = AXUIElementCopyAttributeValue(el, kAXParentAttribute as CFString, &parent)
+            current = (result == .success) ? (parent as! AXUIElement?) : nil
+        }
+    }
+
+    private func removeWindowNotifications(observer: AXObserver) {
+        guard let window = observedWindow else { return }
+        AXObserverRemoveNotification(observer, window, kAXMovedNotification as CFString)
+        AXObserverRemoveNotification(observer, window, kAXResizedNotification as CFString)
+        observedWindow = nil
     }
 
     private func removeObserver() {
         if let obs = observer {
+            if let window = observedWindow {
+                AXObserverRemoveNotification(obs, window, kAXMovedNotification as CFString)
+                AXObserverRemoveNotification(obs, window, kAXResizedNotification as CFString)
+            }
             CFRunLoopRemoveSource(
                 CFRunLoopGetMain(),
                 AXObserverGetRunLoopSource(obs),
@@ -236,6 +268,7 @@ final class CaretPositionTracker {
         }
         observer = nil
         observedElement = nil
+        observedWindow = nil
         observedPid = 0
     }
 }

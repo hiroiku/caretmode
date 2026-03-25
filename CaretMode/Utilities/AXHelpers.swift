@@ -1,5 +1,5 @@
+import AppKit
 @preconcurrency import ApplicationServices
-import Foundation
 
 enum AXHelpers {
     private nonisolated(unsafe) static let systemWide = AXUIElementCreateSystemWide()
@@ -55,6 +55,10 @@ enum AXHelpers {
         if getAttribute(element, kAXSelectedTextRangeAttribute) != nil {
             return isEditable(element)
         }
+        // Fallback: string value + editable = likely a text input (custom widgets)
+        if getAttribute(element, kAXValueAttribute) is String, isEditable(element) {
+            return true
+        }
         return false
     }
 
@@ -71,20 +75,54 @@ enum AXHelpers {
     }
 
     static func getCaretRect(from element: AXUIElement) -> CGRect? {
-        // Text markers are more reliable for Chrome/Electron (CFRange returns location 0)
-        if let rect = getCaretRectViaTextMarker(from: element) {
+        let windowRect = getContainingWindowRect(of: element)
+
+        if let rect = getCaretRectViaTextMarker(from: element),
+           validateCaretRect(rect), isWithinBounds(rect, window: windowRect) {
             return rect
         }
-        // CFRange works correctly for native apps and Safari
-        if let rect = getCaretRectViaTextRange(from: element) {
+        if let rect = getCaretRectViaTextRange(from: element),
+           validateCaretRect(rect), isWithinBounds(rect, window: windowRect) {
             return rect
         }
-        // Last resort: use element position with estimated caret height
-        if let posValue = getAttribute(element, kAXPositionAttribute) {
-            var position = CGPoint.zero
-            if AXValueGetValue(posValue as! AXValue, .cgPoint, &position) {
-                return CGRect(x: position.x, y: position.y, width: 0, height: 16)
+        // Last resort: use element rect with vertically centered caret
+        if let elementRect = getElementRect(element) {
+            let height = estimateCaretHeight(from: element)
+            let y = elementRect.origin.y + (elementRect.height - height) / 2
+            return CGRect(x: elementRect.origin.x, y: y, width: 0, height: height)
+        }
+        return nil
+    }
+
+    // MARK: - Validation
+
+    private static func validateCaretRect(_ rect: CGRect) -> Bool {
+        guard rect.height >= 4, rect.height <= 500 else { return false }
+        let mainScreenHeight = NSScreen.screens.first?.frame.height ?? 0
+        let appKitY = mainScreenHeight - rect.origin.y
+        let appKitPoint = NSPoint(x: rect.origin.x, y: appKitY)
+        let screenUnion = NSScreen.screens.reduce(CGRect.null) { $0.union($1.frame) }
+        let expandedBounds = screenUnion.insetBy(dx: -100, dy: -100)
+        return expandedBounds.contains(appKitPoint)
+    }
+
+    private static func isWithinBounds(_ rect: CGRect, window: CGRect?) -> Bool {
+        guard let window else { return true }
+        let expandedWindow = window.insetBy(dx: -20, dy: -20)
+        return expandedWindow.contains(rect.origin)
+    }
+
+    private static func getContainingWindowRect(of element: AXUIElement) -> CGRect? {
+        // Walk up the AX hierarchy to find the containing window
+        var current: AXUIElement? = element
+        while let el = current {
+            if let role = getStringAttribute(el, kAXRoleAttribute),
+               role == kAXWindowRole || role == "AXSheet" || role == "AXDialog" {
+                return getElementRect(el)
             }
+            var parent: AnyObject?
+            let result = AXUIElementCopyAttributeValue(el, kAXParentAttribute as CFString, &parent)
+            current = (result == .success) ? (parent as! AXUIElement?) : nil
         }
         return nil
     }
@@ -165,6 +203,24 @@ enum AXHelpers {
     private static func sameLine(_ a: CGRect, _ b: CGRect) -> Bool {
         let threshold = max(a.height, b.height) * 0.5
         return abs(a.midY - b.midY) < threshold
+    }
+
+    private static func estimateCaretHeight(from element: AXUIElement) -> CGFloat {
+        if let fontDict = getAttribute(element, "AXFont") as? [String: Any],
+           let fontSize = fontDict["AXFontSize"] as? CGFloat, fontSize > 0 {
+            return fontSize * 1.2
+        }
+        if let rangeValue = getAttribute(element, kAXSelectedTextRangeAttribute) {
+            var range = CFRange()
+            if AXValueGetValue(rangeValue as! AXValue, .cfRange, &range) {
+                let loc = max(0, range.location - 1)
+                if let rect = boundsForRange(element: element, location: loc, length: 1),
+                   rect.height > 0 {
+                    return rect.height
+                }
+            }
+        }
+        return 16
     }
 
     static func getElementRect(_ element: AXUIElement) -> CGRect? {
